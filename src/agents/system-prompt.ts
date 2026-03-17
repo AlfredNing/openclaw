@@ -1,4 +1,4 @@
-import { createHmac, createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
@@ -422,11 +422,13 @@ export function buildAgentSystemPrompt(params: {
   const lines = [
     "You are a personal assistant running inside OpenClaw.",
     "",
+    // 工具描述
     "## Tooling",
     "Tool availability (filtered by policy):",
     "Tool names are case-sensitive. Call tools exactly as listed.",
     toolLines.length > 0
-      ? toolLines.join("\n")
+      ? // 工具组装
+        toolLines.join("\n")
       : [
           "Pi lists the standard tools above. This runtime enables:",
           "- grep: search file contents for patterns",
@@ -458,6 +460,7 @@ export function buildAgentSystemPrompt(params: {
       : []),
     "Do not poll `subagents list` / `sessions_list` in a loop; only check status on-demand (for intervention, debugging, or when explicitly asked).",
     "",
+    // 行为规范
     "## Tool Call Style",
     "Default: do not narrate routine, low-risk tool calls (just call the tool).",
     "Narrate only when it helps: multi-step work, complex/challenging problems, sensitive actions (e.g., deletions), or when the user explicitly asks.",
@@ -580,6 +583,7 @@ export function buildAgentSystemPrompt(params: {
     ...buildVoiceSection({ isMinimal, ttsHint: params.ttsHint }),
   ];
 
+  // 用户自定义提示
   if (extraSystemPrompt) {
     // Use "Subagent Context" header for minimal mode (subagents), otherwise "Group Chat Context"
     const contextHeader =
@@ -623,6 +627,7 @@ export function buildAgentSystemPrompt(params: {
   if (validContextFiles.length > 0 || bootstrapTruncationWarningLines.length > 0) {
     lines.push("# Project Context", "");
     if (validContextFiles.length > 0) {
+      // 判断是否有 soul.md 文件
       const hasSoulFile = validContextFiles.some((file) => {
         const normalizedPath = file.path.trim().replace(/\\/g, "/");
         const baseName = normalizedPath.split("/").pop() ?? normalizedPath;
@@ -630,6 +635,7 @@ export function buildAgentSystemPrompt(params: {
       });
       lines.push("The following project context files have been loaded:");
       if (hasSoulFile) {
+        // 注明 用户soul.md 文件
         lines.push(
           "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
         );
@@ -648,6 +654,7 @@ export function buildAgentSystemPrompt(params: {
     }
   }
 
+  // 设置 session 状态
   // Skip silent replies for subagent/none modes
   if (!isMinimal) {
     lines.push(
